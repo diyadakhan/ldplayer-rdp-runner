@@ -1,0 +1,48 @@
+name: 6-Hour Windows RDP with LDPlayer
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 360
+
+    steps:
+    - name: Download and Setup Ngrok
+      run: |
+        Invoke-WebRequest -Uri "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip" -OutFile "$env:TEMP\ngrok.zip"
+        Expand-Archive "$env:TEMP\ngrok.zip" -DestinationPath "C:\ngrok"
+        cmd /c "C:\ngrok\ngrok.exe config add-authtoken 3IxlNtzONRDcIhW8UqRIQqk3vB3_6LtCaPRKsSJngV6Czohqh"
+
+    - name: Enable Remote Desktop
+      run: |
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
+        net user runneradmin Rdp@TikTok2026!
+
+    - name: Start Ngrok Tunnel and Print Credentials
+      run: |
+        Start-Process -FilePath "C:\ngrok\ngrok.exe" -ArgumentList "tcp 3389"
+        Start-Sleep -Seconds 6
+        $tunnels = (Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels").tunnels
+        $publicUrl = $tunnels[0].public_url.Replace("tcp://", "")
+        Write-Host "=========================================="
+        Write-Host "RDP_IP: $publicUrl"
+        Write-Host "RDP_USER: runneradmin"
+        Write-Host "RDP_PASS: Rdp@TikTok2026!"
+        Write-Host "=========================================="
+
+    - name: Install LDPlayer 9 Silently
+      run: |
+        Write-Host "Downloading LDPlayer 9..."
+        Invoke-WebRequest -Uri "https://encdn.ldmnq.com/download/en/LDPlayer9.exe" -OutFile "$env:TEMP\LDPlayer9.exe"
+        Write-Host "Installing LDPlayer silently..."
+        Start-Process -FilePath "$env:TEMP\LDPlayer9.exe" -ArgumentList "/s" -Wait
+        Write-Host "LDPlayer 9 Installed Successfully!"
+
+    - name: Keep Alive (6 Hours)
+      run: |
+        Write-Host "RDP is live. Running for 6 hours..."
+        Start-Sleep -Seconds 21600
