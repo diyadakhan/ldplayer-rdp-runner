@@ -24,23 +24,31 @@ jobs:
 
     - name: Start Ngrok Tunnel and Print Credentials
       run: |
-        Start-Process -FilePath "C:\ngrok\ngrok.exe" -ArgumentList "tcp 3389"
-        Start-Sleep -Seconds 6
-        $tunnels = (Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels").tunnels
-        $publicUrl = $tunnels[0].public_url.Replace("tcp://", "")
-        Write-Host "=========================================="
-        Write-Host "RDP_IP: $publicUrl"
-        Write-Host "RDP_USER: runneradmin"
-        Write-Host "RDP_PASS: Rdp@TikTok2026!"
-        Write-Host "=========================================="
+        Start-Process -FilePath "C:\ngrok\ngrok.exe" -ArgumentList "tcp 3389 --log C:\ngrok.log"
+        Start-Sleep -Seconds 8
+        if (Test-Path "C:\ngrok.log") {
+            Get-Content "C:\ngrok.log"
+        }
+        try {
+            $tunnels = (Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels").tunnels
+            $publicUrl = $tunnels[0].public_url.Replace("tcp://", "")
+            Write-Host "=========================================="
+            Write-Host "RDP_IP: $publicUrl"
+            Write-Host "RDP_USER: runneradmin"
+            Write-Host "RDP_PASS: Rdp@TikTok2026!"
+            Write-Host "=========================================="
+        } catch {
+            Write-Host "Failed to connect to 4040. Checking log:"
+            if (Test-Path "C:\ngrok.log") { Get-Content "C:\ngrok.log" }
+            throw $_.Exception.Message
+        }
 
     - name: Install LDPlayer 9 Silently
       run: |
         Write-Host "Downloading LDPlayer 9..."
         Invoke-WebRequest -Uri "https://encdn.ldmnq.com/download/en/LDPlayer9.exe" -OutFile "$env:TEMP\LDPlayer9.exe"
-        Write-Host "Installing LDPlayer silently..."
         Start-Process -FilePath "$env:TEMP\LDPlayer9.exe" -ArgumentList "/s" -Wait
-        Write-Host "LDPlayer 9 Installed Successfully!"
+        Write-Host "LDPlayer 9 Ready!"
 
     - name: Keep Alive (6 Hours)
       run: |
