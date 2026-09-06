@@ -16,18 +16,27 @@ jobs:
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
         net user runneradmin Rdp@TikTok2026!
 
-    - name: Install LDPlayer 9 in Background
+    - name: Start Pinggy Tunnel & Send IP
+      shell: bash
+      run: |
+        ssh -p 443 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -R0:localhost:3389 tcp@free.pinggy.io > pinggy.log 2>&1 &
+        sleep 10
+        cat pinggy.log
+        RAW_URL=$(grep -o 'tcp://[a-zA-Z0-9.-]*:[0-9]*' pinggy.log | head -n 1)
+        CLEAN_IP=$(echo "$RAW_URL" | sed 's/tcp:\/\///')
+        echo "Tunnel address: $CLEAN_IP"
+        curl -s -d "$CLEAN_IP" "https://ntfy.sh/diyada_rdp_5066"
+        echo "Notification sent!"
+
+    - name: Install LDPlayer 9 Silently
       run: |
         Write-Host "Downloading LDPlayer 9..."
         Invoke-WebRequest -Uri "https://encdn.ldmnq.com/download/en/LDPlayer9.exe" -OutFile "$env:TEMP\LDPlayer9.exe"
-        Write-Host "Starting silent installation in background..."
-        Start-Process -FilePath "$env:TEMP\LDPlayer9.exe" -ArgumentList "/s"
+        Write-Host "Installing silently..."
+        Start-Process -FilePath "$env:TEMP\LDPlayer9.exe" -ArgumentList "/s" -Wait
+        Write-Host "LDPlayer 9 Ready!"
 
-    - name: Start Pinggy Tunnel (No Credit Card Required)
+    - name: Keep Tunnel Alive
       shell: bash
       run: |
-        echo "=========================================="
-        echo "USERNAME: runneradmin"
-        echo "PASSWORD: Rdp@TikTok2026!"
-        echo "=========================================="
-        ssh -p 443 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -R0:localhost:3389 tcp@free.pinggy.io
+        wait
