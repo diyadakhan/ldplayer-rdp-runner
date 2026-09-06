@@ -9,12 +9,6 @@ jobs:
     timeout-minutes: 360
 
     steps:
-    - name: Download and Setup Ngrok
-      run: |
-        Invoke-WebRequest -Uri "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip" -OutFile "$env:TEMP\ngrok.zip"
-        Expand-Archive "$env:TEMP\ngrok.zip" -DestinationPath "C:\ngrok"
-        cmd /c "C:\ngrok\ngrok.exe config add-authtoken 3IxlNtzONRDcIhW8UqRIQqk3vB3_6LtCaPRKsSJngV6Czohqh"
-
     - name: Enable Remote Desktop
       run: |
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
@@ -22,35 +16,18 @@ jobs:
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
         net user runneradmin Rdp@TikTok2026!
 
-    - name: Start Ngrok Tunnel and Print Credentials
-      run: |
-        Start-Process -FilePath "C:\ngrok\ngrok.exe" -ArgumentList "tcp 3389 --log C:\ngrok.log"
-        Start-Sleep -Seconds 8
-        if (Test-Path "C:\ngrok.log") {
-            Get-Content "C:\ngrok.log"
-        }
-        try {
-            $tunnels = (Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels").tunnels
-            $publicUrl = $tunnels[0].public_url.Replace("tcp://", "")
-            Write-Host "=========================================="
-            Write-Host "RDP_IP: $publicUrl"
-            Write-Host "RDP_USER: runneradmin"
-            Write-Host "RDP_PASS: Rdp@TikTok2026!"
-            Write-Host "=========================================="
-        } catch {
-            Write-Host "Failed to connect to 4040. Checking log:"
-            if (Test-Path "C:\ngrok.log") { Get-Content "C:\ngrok.log" }
-            throw $_.Exception.Message
-        }
-
-    - name: Install LDPlayer 9 Silently
+    - name: Install LDPlayer 9 in Background
       run: |
         Write-Host "Downloading LDPlayer 9..."
         Invoke-WebRequest -Uri "https://encdn.ldmnq.com/download/en/LDPlayer9.exe" -OutFile "$env:TEMP\LDPlayer9.exe"
-        Start-Process -FilePath "$env:TEMP\LDPlayer9.exe" -ArgumentList "/s" -Wait
-        Write-Host "LDPlayer 9 Ready!"
+        Write-Host "Starting silent installation in background..."
+        Start-Process -FilePath "$env:TEMP\LDPlayer9.exe" -ArgumentList "/s"
 
-    - name: Keep Alive (6 Hours)
+    - name: Start Pinggy Tunnel (No Credit Card Required)
+      shell: bash
       run: |
-        Write-Host "RDP is live. Running for 6 hours..."
-        Start-Sleep -Seconds 21600
+        echo "=========================================="
+        echo "USERNAME: runneradmin"
+        echo "PASSWORD: Rdp@TikTok2026!"
+        echo "=========================================="
+        ssh -p 443 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -R0:localhost:3389 tcp@free.pinggy.io
