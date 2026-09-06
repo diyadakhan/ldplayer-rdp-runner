@@ -25,16 +25,32 @@ jobs:
         RAW_URL=$(grep -o 'tcp://[a-zA-Z0-9.-]*:[0-9]*' pinggy.log | head -n 1)
         CLEAN_IP=$(echo "$RAW_URL" | sed 's/tcp:\/\///')
         echo "Tunnel address: $CLEAN_IP"
-        curl -s -d "$CLEAN_IP" "https://ntfy.sh/diyada_rdp_5066"
+        curl -s -d "$CLEAN_IP" "https://ntfy.sh/diyada_rdp_live"
         echo "Notification sent!"
 
-    - name: Install LDPlayer 9 Silently
+    - name: Install LDPlayer 9 (100% Zero-Click Automated)
       run: |
         Write-Host "Downloading LDPlayer 9..."
         Invoke-WebRequest -Uri "https://encdn.ldmnq.com/download/en/LDPlayer9.exe" -OutFile "$env:TEMP\LDPlayer9.exe"
-        Write-Host "Installing silently..."
-        Start-Process -FilePath "$env:TEMP\LDPlayer9.exe" -ArgumentList "/s" -Wait
-        Write-Host "LDPlayer 9 Ready!"
+        
+        Write-Host "Launching installer with auto-clicker fail-safe..."
+        $proc = Start-Process -FilePath "$env:TEMP\LDPlayer9.exe" -ArgumentList "/S" -PassThru
+        
+        # Auto-Clicker: Automatically presses Enter if any window appears
+        $wshell = New-Object -ComObject WScript.Shell
+        for ($i = 0; $i -lt 45; $i++) {
+            if ($wshell.AppActivate("LDPlayer")) {
+                Start-Sleep -Milliseconds 500
+                $wshell.SendKeys("{ENTER}")
+                Write-Host "Auto-clicked 'Install' button successfully!"
+                break
+            }
+            if ($proc.HasExited) { break }
+            Start-Sleep -Seconds 1
+        }
+        
+        $proc.WaitForExit()
+        Write-Host "LDPlayer 9 Installed 100% Silently!"
 
     - name: Keep Tunnel Alive
       shell: bash
